@@ -1,0 +1,75 @@
+pip install opencv-python-headless easyocr streamlit numpy
+
+
+pip install easyocr
+
+
+import cv2
+import easyocr
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Path to the input images
+IMAGE_PATHS = ['/content/WhatsApp Image 2025-05-11 at 17.44.19_f626356c.jpg',
+              '/content/WhatsApp Image 2025-05-11 at 17.44.20_92c315bf.jpg']
+
+# Process each image individually
+for image_path in IMAGE_PATHS:
+    # Load the image
+    image = cv2.imread(image_path)
+
+    if image is None:
+        raise FileNotFoundError(f"Image not found at path: {image_path}")
+
+    # Convert BGR to RGB for visualization
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Convert to grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Detect edges using Canny edge detection
+    edges = cv2.Canny(gray_image, threshold1=100, threshold2=200)
+
+    # Initialize EasyOCR Reader
+    reader = easyocr.Reader(['en'], gpu=False)
+
+    # Perform OCR on the original image (BGR)
+    results = reader.readtext(image)
+
+    # Draw results on a copy of the image
+    image_with_boxes = image.copy()
+
+    for (bbox, text, prob) in results:
+        if prob > 0.5:
+            (top_left, top_right, bottom_right, bottom_left) = bbox
+            top_left = tuple(map(int, top_left))
+            bottom_right = tuple(map(int, bottom_right))
+
+            cv2.rectangle(image_with_boxes, top_left, bottom_right, (0, 255, 0), 2)
+            cv2.putText(image_with_boxes, text, (top_left[0], top_left[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+
+    # Convert the final image with boxes to RGB for display
+    image_with_boxes_rgb = cv2.cvtColor(image_with_boxes, cv2.COLOR_BGR2RGB)
+
+    # Display all steps for the current image
+    fig, axs = plt.subplots(1, 4, figsize=(20, 6))
+
+    axs[0].imshow(image_rgb)
+    axs[0].set_title("Original Image")
+    axs[0].axis('off')
+
+    axs[1].imshow(gray_image, cmap='gray')
+    axs[1].set_title("Grayscale Image")
+    axs[1].axis('off')
+
+    axs[2].imshow(edges, cmap='gray')
+    axs[2].set_title("Edge Detection")
+    axs[2].axis('off')
+
+    axs[3].imshow(image_with_boxes_rgb)
+    axs[3].set_title("Detected Number Plate")
+    axs[3].axis('off')
+
+    plt.tight_layout()
+    plt.show()
